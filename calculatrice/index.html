@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Calculatrice</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #1e1e2f, #2d2d44);
+    font-family: "Segoe UI", Arial, sans-serif;
+  }
+
+  .calculatrice {
+    width: 320px;
+    background: #252536;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  }
+
+  .ecran {
+    background: #1a1a28;
+    border-radius: 10px;
+    padding: 16px;
+    margin-bottom: 16px;
+    text-align: right;
+    overflow: hidden;
+  }
+
+  .historique {
+    color: #8888a5;
+    font-size: 14px;
+    min-height: 20px;
+    white-space: nowrap;
+  }
+
+  .resultat {
+    color: #ffffff;
+    font-size: 36px;
+    font-weight: 600;
+    margin-top: 4px;
+    word-break: break-all;
+  }
+
+  .touches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+
+  button {
+    border: none;
+    border-radius: 10px;
+    padding: 16px 0;
+    font-size: 20px;
+    cursor: pointer;
+    background: #35354d;
+    color: #ffffff;
+    transition: filter 0.1s, transform 0.05s;
+  }
+
+  button:hover { filter: brightness(1.2); }
+  button:active { transform: scale(0.95); }
+
+  .operation { background: #4a4a6a; }
+  .egal { background: #6c5ce7; grid-column: span 2; }
+  .egal:hover { background: #7d6ef0; }
+  .effacer { background: #e74c3c; }
+  .effacer:hover { background: #ff6656; }
+</style>
+</head>
+<body>
+  <div class="calculatrice">
+    <div class="ecran">
+      <div class="historique" id="historique"></div>
+      <div class="resultat" id="resultat">0</div>
+    </div>
+    <div class="touches">
+      <button class="effacer" data-action="effacer">C</button>
+      <button data-action="supprimer">⌫</button>
+      <button class="operation" data-op="%">%</button>
+      <button class="operation" data-op="/">÷</button>
+
+      <button data-chiffre="7">7</button>
+      <button data-chiffre="8">8</button>
+      <button data-chiffre="9">9</button>
+      <button class="operation" data-op="*">×</button>
+
+      <button data-chiffre="4">4</button>
+      <button data-chiffre="5">5</button>
+      <button data-chiffre="6">6</button>
+      <button class="operation" data-op="-">−</button>
+
+      <button data-chiffre="1">1</button>
+      <button data-chiffre="2">2</button>
+      <button data-chiffre="3">3</button>
+      <button class="operation" data-op="+">+</button>
+
+      <button data-chiffre="0">0</button>
+      <button data-action="virgule">,</button>
+      <button class="egal" data-action="egal">=</button>
+    </div>
+  </div>
+
+<script>
+  const historiqueEl = document.getElementById("historique");
+  const resultatEl = document.getElementById("resultat");
+
+  let courant = "0";
+  let precedent = null;
+  let operation = null;
+  let nouveauNombre = true;
+
+  function afficher() {
+    resultatEl.textContent = courant.replace(".", ",");
+    historiqueEl.textContent =
+      precedent !== null && operation !== null
+        ? `${formater(precedent)} ${symbole(operation)}`
+        : "";
+  }
+
+  function formater(n) {
+    return String(n).replace(".", ",");
+  }
+
+  function symbole(op) {
+    return { "+": "+", "-": "−", "*": "×", "/": "÷", "%": "%" }[op];
+  }
+
+  function ajouterChiffre(chiffre) {
+    if (nouveauNombre) {
+      courant = chiffre;
+      nouveauNombre = false;
+    } else if (courant.replace("-", "").length < 15) {
+      courant = courant === "0" ? chiffre : courant + chiffre;
+    }
+    afficher();
+  }
+
+  function ajouterVirgule() {
+    if (nouveauNombre) {
+      courant = "0.";
+      nouveauNombre = false;
+    } else if (!courant.includes(".")) {
+      courant += ".";
+    }
+    afficher();
+  }
+
+  function choisirOperation(op) {
+    if (operation !== null && !nouveauNombre) {
+      calculer();
+    }
+    precedent = parseFloat(courant);
+    operation = op;
+    nouveauNombre = true;
+    afficher();
+  }
+
+  function calculer() {
+    if (operation === null || precedent === null) return;
+    const b = parseFloat(courant);
+    let resultat;
+    switch (operation) {
+      case "+": resultat = precedent + b; break;
+      case "-": resultat = precedent - b; break;
+      case "*": resultat = precedent * b; break;
+      case "/":
+        if (b === 0) {
+          courant = "Erreur";
+          precedent = null;
+          operation = null;
+          nouveauNombre = true;
+          afficher();
+          return;
+        }
+        resultat = precedent / b;
+        break;
+      case "%": resultat = precedent % b; break;
+    }
+    resultat = Math.round(resultat * 1e12) / 1e12;
+    courant = String(resultat);
+    precedent = null;
+    operation = null;
+    nouveauNombre = true;
+    afficher();
+  }
+
+  function effacer() {
+    courant = "0";
+    precedent = null;
+    operation = null;
+    nouveauNombre = true;
+    afficher();
+  }
+
+  function supprimer() {
+    if (nouveauNombre || courant === "Erreur") {
+      effacer();
+      return;
+    }
+    courant = courant.length > 1 ? courant.slice(0, -1) : "0";
+    afficher();
+  }
+
+  document.querySelectorAll("[data-chiffre]").forEach((btn) =>
+    btn.addEventListener("click", () => ajouterChiffre(btn.dataset.chiffre))
+  );
+  document.querySelectorAll("[data-op]").forEach((btn) =>
+    btn.addEventListener("click", () => choisirOperation(btn.dataset.op))
+  );
+  document.querySelector('[data-action="virgule"]').addEventListener("click", ajouterVirgule);
+  document.querySelector('[data-action="egal"]').addEventListener("click", calculer);
+  document.querySelector('[data-action="effacer"]').addEventListener("click", effacer);
+  document.querySelector('[data-action="supprimer"]').addEventListener("click", supprimer);
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key >= "0" && e.key <= "9") ajouterChiffre(e.key);
+    else if (e.key === "." || e.key === ",") ajouterVirgule();
+    else if (["+", "-", "*", "/", "%"].includes(e.key)) choisirOperation(e.key);
+    else if (e.key === "Enter" || e.key === "=") calculer();
+    else if (e.key === "Backspace") supprimer();
+    else if (e.key === "Escape") effacer();
+  });
+
+  afficher();
+</script>
+</body>
+</html>
